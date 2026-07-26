@@ -31,6 +31,22 @@
   border: 1px solid rgba(0, 0, 0, 0.08);
 }
 
+/* KaTeX Math Equation Styling */
+.katex {
+  font-size: 1.08em;
+  line-height: 1.2;
+}
+
+.katex-display {
+  margin: 1.25em 0 !important;
+  padding: 0.75em 1em;
+  background: rgba(30, 41, 59, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0.75rem;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
 /* Modern thin scrollbars */
 ::-webkit-scrollbar {
   width: 6px;

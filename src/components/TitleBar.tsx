@@ -12,6 +12,7 @@ import {
   Code2,
   Sun,
   Moon,
+  Settings,
 } from "lucide-react";
 import { useDocStore } from "../store/useDocStore";
 
@@ -25,6 +26,7 @@ export function TitleBar() {
     toggleRightSidebar,
     isSearchOpen,
     toggleSearch,
+    toggleSettings,
     isPinned,
     togglePinned,
     theme,
@@ -192,7 +194,7 @@ export function TitleBar() {
         )}
       </div>
 
-      {/* Right: Open File, Toggle Split View, Theme Toggle, Search, Window Controls */}
+      {/* Right: Open File, Toggle Split View, Theme Toggle, Settings, Search, Window Controls */}
       <div className="flex items-center gap-1">
         <button
           onClick={handleOpenFileDialog}
@@ -218,6 +220,19 @@ export function TitleBar() {
           title={isDark ? "Switch to Light Theme" : "Switch to Dark Theme"}
         >
           {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4 text-indigo-600" />}
+        </button>
+
+        {/* Customization Settings Button */}
+        <button
+          onClick={toggleSettings}
+          className={`p-1.5 rounded-md transition-colors ${
+            isDark
+              ? "text-slate-400 hover:text-cyan-400 hover:bg-slate-800/60"
+              : "text-slate-600 hover:text-cyan-600 hover:bg-slate-200/60"
+          }`}
+          title="Customize Theme & Fonts"
+        >
+          <Settings className="w-4 h-4" />
         </button>
 
         {/* Split View Toggle Button */}

@@ -1,25 +1,112 @@
 import { useEffect, useRef } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import remarkMath from "remark-math";
 import rehypeHighlight from "rehype-highlight";
 import rehypeKatex from "rehype-katex";
+import {
+  Info,
+  Lightbulb,
+  AlertTriangle,
+  Flame,
+  ShieldAlert,
+  Clock,
+  FileText,
+  CheckSquare,
+} from "lucide-react";
 import { useDocStore, TocItem } from "../store/useDocStore";
 import { CodeBlock } from "./CodeBlock";
+import { MermaidDiagram } from "./MermaidDiagram";
+import { FrontmatterCard } from "./FrontmatterCard";
 import { handleScrollSync } from "../utils/scrollSync";
 
+// Helper function to extract YAML frontmatter
+function parseFrontmatter(rawContent: string): { metadata: Record<string, any>; body: string } {
+  if (!rawContent.startsWith("---")) {
+    return { metadata: {}, body: rawContent };
+  }
+
+  const matches = rawContent.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/);
+  if (!matches) {
+    return { metadata: {}, body: rawContent };
+  }
+
+  const yamlText = matches[1];
+  const body = matches[2];
+  const metadata: Record<string, any> = {};
+
+  yamlText.split("\n").forEach((line) => {
+    const colonIdx = line.indexOf(":");
+    if (colonIdx !== -1) {
+      const key = line.substring(0, colonIdx).trim();
+      let value: any = line.substring(colonIdx + 1).trim();
+
+      if (value.startsWith("[") && value.endsWith("]")) {
+        value = value
+          .substring(1, value.length - 1)
+          .split(",")
+          .map((v: string) => v.trim().replace(/^['"]|['"]$/g, ""));
+      } else {
+        value = value.replace(/^['"]|['"]$/g, "");
+      }
+
+      if (key) metadata[key] = value;
+    }
+  });
+
+  return { metadata, body };
+}
+
+// Emoji shortcode dictionary transformer
+function transformEmojiShortcodes(text: string): string {
+  const emojiMap: Record<string, string> = {
+    ":rocket:": "🚀",
+    ":fire:": "🔥",
+    ":star:": "⭐",
+    ":check:": "✅",
+    ":sparkles:": "✨",
+    ":heart:": "❤️",
+    ":bug:": "🐛",
+    ":bulb:": "💡",
+    ":warning:": "⚠️",
+    ":smile:": "😊",
+    ":gear:": "⚙️",
+    ":memo:": "📝",
+    ":zap:": "⚡",
+    ":tada:": "🎉",
+    ":lock:": "🔒",
+  };
+
+  let result = text;
+  Object.entries(emojiMap).forEach(([shortcode, glyph]) => {
+    result = result.replaceAll(shortcode, glyph);
+  });
+  return result;
+}
+
 export function MarkdownCanvas() {
-  const { content, setToc, isSyncScrollEnabled, theme } = useDocStore();
+  const { content, setToc, isSyncScrollEnabled, theme, proseFont, codeFont } = useDocStore();
   const canvasRef = useRef<HTMLDivElement>(null);
   const isDark = theme === "dark";
 
+  const { metadata, body } = parseFrontmatter(content);
+  const parsedContent = transformEmojiShortcodes(body);
+
+  // Compute Document Stats
+  const words = parsedContent.trim().split(/\s+/).filter(Boolean).length;
+  const readingTime = Math.max(1, Math.ceil(words / 200));
+  const lines = parsedContent.split("\n").length;
+  const checkboxes = (parsedContent.match(/\[[ xX]\]/g) || []).length;
+  const checkedBoxes = (parsedContent.match(/\[[xX]\]/g) || []).length;
+
   // Extract ToC items whenever content changes
   useEffect(() => {
-    if (!content) {
+    if (!parsedContent) {
       setToc([]);
       return;
     }
 
-    const headingLines = content.split("\n");
+    const headingLines = parsedContent.split("\n");
     const extractedToc: TocItem[] = [];
 
     headingLines.forEach((line) => {
@@ -37,7 +124,7 @@ export function MarkdownCanvas() {
     });
 
     setToc(extractedToc);
-  }, [content, setToc]);
+  }, [parsedContent, setToc]);
 
   // Synchronized scroll with Raw panel
   const onScroll = () => {
@@ -48,20 +135,48 @@ export function MarkdownCanvas() {
     }
   };
 
+  const fontFamilyStyle = proseFont === "System" ? "system-ui, sans-serif" : `${proseFont}, sans-serif`;
+
   return (
     <div
       id="aster-markdown-canvas"
       ref={canvasRef}
       onScroll={onScroll}
-      className={`flex-1 overflow-y-auto p-6 md:p-12 transition-colors ${
+      style={{ fontFamily: fontFamilyStyle }}
+      className={`flex-1 overflow-y-auto p-6 md:p-12 transition-colors relative ${
         isDark ? "bg-slate-950/60 text-slate-200 selection:bg-cyan-500/30" : "bg-white/90 text-slate-800 selection:bg-cyan-200"
       }`}
     >
-      <article className={`max-w-4xl mx-auto space-y-6 leading-relaxed font-sans ${
+      <article className={`max-w-4xl mx-auto space-y-6 leading-relaxed ${
         isDark ? "text-slate-200" : "text-slate-800"
       }`}>
+        {/* Render Frontmatter Metadata Card if present */}
+        {Object.keys(metadata).length > 0 && <FrontmatterCard metadata={metadata} />}
+
+        {/* Top Reading Stats Bar */}
+        {words > 30 && (
+          <div className={`flex flex-wrap items-center gap-4 py-2 px-4 rounded-xl border text-xs mb-6 select-none ${
+            isDark ? "bg-slate-900/60 border-slate-800/80 text-slate-400" : "bg-slate-100/70 border-slate-200 text-slate-600"
+          }`}>
+            <div className="flex items-center gap-1.5">
+              <Clock className="w-3.5 h-3.5 text-cyan-400" />
+              <span>{readingTime} min read</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <FileText className="w-3.5 h-3.5 text-indigo-400" />
+              <span>{words} words • {lines} lines</span>
+            </div>
+            {checkboxes > 0 && (
+              <div className="flex items-center gap-1.5">
+                <CheckSquare className="w-3.5 h-3.5 text-emerald-400" />
+                <span>{checkedBoxes}/{checkboxes} tasks completed</span>
+              </div>
+            )}
+          </div>
+        )}
+
         <ReactMarkdown
-          remarkPlugins={[remarkGfm]}
+          remarkPlugins={[remarkGfm, remarkMath]}
           rehypePlugins={[rehypeHighlight, rehypeKatex]}
           components={{
             // Heading Customization with Auto IDs for ToC Scroll Sync
@@ -104,18 +219,24 @@ export function MarkdownCanvas() {
                 </h3>
               );
             },
-            // Custom Code Block rendering
+            // Code & Mermaid Diagram rendering
             code({ node, inline, className, children, ...props }: any) {
               const match = /language-(\w+)/.exec(className || "");
+              const language = match ? match[1] : "";
               const codeString = String(children).replace(/\n$/, "");
 
+              if (language === "mermaid") {
+                return <MermaidDiagram chart={codeString} />;
+              }
+
               if (!inline && (match || codeString.includes("\n"))) {
-                return <CodeBlock language={match ? match[1] : ""} value={codeString} />;
+                return <CodeBlock language={language} value={codeString} />;
               }
 
               return (
                 <code
-                  className="px-1.5 py-0.5 rounded-md bg-slate-900 border border-slate-800 text-cyan-300 font-mono text-xs"
+                  style={{ fontFamily: codeFont }}
+                  className="px-1.5 py-0.5 rounded-md bg-slate-900 border border-slate-800 text-cyan-300 text-xs"
                   {...props}
                 >
                   {children}
@@ -133,15 +254,79 @@ export function MarkdownCanvas() {
                 {children}
               </a>
             ),
-            // Custom Blockquotes
-            blockquote: ({ children }) => (
-              <blockquote className="border-l-4 border-cyan-500/60 pl-4 py-1 my-4 bg-cyan-500/5 rounded-r-lg text-slate-300 italic">
-                {children}
-              </blockquote>
-            ),
+            // Custom Blockquotes with GitHub-style Alerts support
+            blockquote: ({ children }: any) => {
+              const textContent = String(children?.[1]?.props?.children?.[0] || children?.[0]?.props?.children || "").trim();
+
+              if (textContent.startsWith("[!NOTE]")) {
+                return (
+                  <div className="my-4 p-4 rounded-xl bg-cyan-500/10 border-l-4 border-cyan-500 text-cyan-200 text-sm">
+                    <div className="flex items-center gap-2 font-bold mb-1 text-cyan-400">
+                      <Info className="w-4 h-4" />
+                      <span>NOTE</span>
+                    </div>
+                    <div>{children}</div>
+                  </div>
+                );
+              }
+
+              if (textContent.startsWith("[!TIP]")) {
+                return (
+                  <div className="my-4 p-4 rounded-xl bg-emerald-500/10 border-l-4 border-emerald-500 text-emerald-200 text-sm">
+                    <div className="flex items-center gap-2 font-bold mb-1 text-emerald-400">
+                      <Lightbulb className="w-4 h-4" />
+                      <span>TIP</span>
+                    </div>
+                    <div>{children}</div>
+                  </div>
+                );
+              }
+
+              if (textContent.startsWith("[!IMPORTANT]")) {
+                return (
+                  <div className="my-4 p-4 rounded-xl bg-violet-500/10 border-l-4 border-violet-500 text-violet-200 text-sm">
+                    <div className="flex items-center gap-2 font-bold mb-1 text-violet-400">
+                      <Flame className="w-4 h-4" />
+                      <span>IMPORTANT</span>
+                    </div>
+                    <div>{children}</div>
+                  </div>
+                );
+              }
+
+              if (textContent.startsWith("[!WARNING]")) {
+                return (
+                  <div className="my-4 p-4 rounded-xl bg-amber-500/10 border-l-4 border-amber-500 text-amber-200 text-sm">
+                    <div className="flex items-center gap-2 font-bold mb-1 text-amber-400">
+                      <AlertTriangle className="w-4 h-4" />
+                      <span>WARNING</span>
+                    </div>
+                    <div>{children}</div>
+                  </div>
+                );
+              }
+
+              if (textContent.startsWith("[!CAUTION]")) {
+                return (
+                  <div className="my-4 p-4 rounded-xl bg-rose-500/10 border-l-4 border-rose-500 text-rose-200 text-sm">
+                    <div className="flex items-center gap-2 font-bold mb-1 text-rose-400">
+                      <ShieldAlert className="w-4 h-4" />
+                      <span>CAUTION</span>
+                    </div>
+                    <div>{children}</div>
+                  </div>
+                );
+              }
+
+              return (
+                <blockquote className="border-l-4 border-cyan-500/60 pl-4 py-1 my-4 bg-cyan-500/5 rounded-r-lg text-slate-300 italic">
+                  {children}
+                </blockquote>
+              );
+            },
             // Custom Tables (GFM)
             table: ({ children }) => (
-              <div className="overflow-x-auto my-6 rounded-xl border border-slate-800 bg-slate-900/60">
+              <div className="overflow-x-auto my-6 rounded-xl border border-slate-800 bg-slate-900/60 shadow-lg">
                 <table className="w-full text-left border-collapse text-sm">{children}</table>
               </div>
             ),
@@ -169,7 +354,7 @@ export function MarkdownCanvas() {
             },
           }}
         >
-          {content}
+          {parsedContent}
         </ReactMarkdown>
       </article>
     </div>

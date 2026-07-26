@@ -12,6 +12,10 @@ export interface MarkdownFileItem {
   relative_path: string;
 }
 
+export type AccentColor = "cyan" | "emerald" | "violet" | "amber" | "rose";
+export type ProseFont = "Inter" | "Roboto" | "Outfit" | "System";
+export type CodeFont = "JetBrains Mono" | "Fira Code";
+
 interface DocState {
   filePath: string | null;
   fileName: string | null;
@@ -20,12 +24,16 @@ interface DocState {
   isSidebarOpen: boolean;
   isRightSidebarOpen: boolean;
   isSearchOpen: boolean;
+  isSettingsOpen: boolean;
   searchQuery: string;
   isPinned: boolean;
   recentFiles: string[];
 
-  // Theme State
+  // Theme & Accent Colors & Fonts
   theme: "dark" | "light";
+  accentColor: AccentColor;
+  proseFont: ProseFont;
+  codeFont: CodeFont;
 
   // Synchronized Scroll & Live Edit State
   isSyncScrollEnabled: boolean;
@@ -47,6 +55,8 @@ interface DocState {
   setRightSidebarOpen: (open: boolean) => void;
   toggleSearch: () => void;
   setSearchOpen: (open: boolean) => void;
+  toggleSettings: () => void;
+  setSettingsOpen: (open: boolean) => void;
   setSearchQuery: (query: string) => void;
   togglePinned: () => void;
   addRecentFile: (path: string) => void;
@@ -54,6 +64,9 @@ interface DocState {
   toggleSyncScroll: () => void;
   toggleEditMode: () => void;
   toggleTheme: () => void;
+  setAccentColor: (accent: AccentColor) => void;
+  setProseFont: (font: ProseFont) => void;
+  setCodeFont: (font: CodeFont) => void;
   saveFile: () => Promise<boolean>;
 }
 
@@ -65,11 +78,15 @@ export const useDocStore = create<DocState>((set, get) => ({
   isSidebarOpen: true,
   isRightSidebarOpen: false,
   isSearchOpen: false,
+  isSettingsOpen: false,
   searchQuery: "",
   isPinned: false,
   recentFiles: [],
 
   theme: "dark",
+  accentColor: "cyan",
+  proseFont: "Inter",
+  codeFont: "JetBrains Mono",
 
   isSyncScrollEnabled: true,
   isEditMode: false,
@@ -103,6 +120,8 @@ export const useDocStore = create<DocState>((set, get) => ({
   setRightSidebarOpen: (open) => set({ isRightSidebarOpen: open }),
   toggleSearch: () => set((state) => ({ isSearchOpen: !state.isSearchOpen })),
   setSearchOpen: (open) => set({ isSearchOpen: open }),
+  toggleSettings: () => set((state) => ({ isSettingsOpen: !state.isSettingsOpen })),
+  setSettingsOpen: (open) => set({ isSettingsOpen: open }),
   setSearchQuery: (query) => set({ searchQuery: query }),
   togglePinned: () => set((state) => ({ isPinned: !state.isPinned })),
   addRecentFile: (path) =>
@@ -122,6 +141,10 @@ export const useDocStore = create<DocState>((set, get) => ({
   toggleSyncScroll: () => set((state) => ({ isSyncScrollEnabled: !state.isSyncScrollEnabled })),
   toggleEditMode: () => set((state) => ({ isEditMode: !state.isEditMode })),
   toggleTheme: () => set((state) => ({ theme: state.theme === "dark" ? "light" : "dark" })),
+
+  setAccentColor: (accent) => set({ accentColor: accent }),
+  setProseFont: (font) => set({ proseFont: font }),
+  setCodeFont: (font) => set({ codeFont: font }),
 
   saveFile: async () => {
     const { filePath, content } = get();

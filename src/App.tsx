@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { TitleBar } from "./components/TitleBar";
 import { Sidebar } from "./components/Sidebar";
 import { SearchBar } from "./components/SearchBar";
+import { SettingsModal } from "./components/SettingsModal";
 import { MarkdownCanvas } from "./components/MarkdownCanvas";
 import { RawMarkdownPanel } from "./components/RawMarkdownPanel";
 import { EmptyState } from "./components/EmptyState";
@@ -38,6 +39,9 @@ export default function App() {
         ? "bg-slate-950 text-slate-100 selection:bg-cyan-500/30 selection:text-cyan-200"
         : "bg-slate-50 text-slate-900 selection:bg-cyan-200 selection:text-cyan-900"
     }`}>
+      {/* Settings Customization Modal */}
+      <SettingsModal />
+
       {/* Header Ribbon Title Bar */}
       <TitleBar />
 

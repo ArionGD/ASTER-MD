@@ -27,6 +27,7 @@ export function RawMarkdownPanel() {
     toggleEditMode,
     toggleRightSidebar,
     theme,
+    codeFont,
   } = useDocStore();
 
   const [copied, setCopied] = useState(false);
@@ -201,6 +202,7 @@ export function RawMarkdownPanel() {
       <div
         ref={rawContainerRef}
         onScroll={onScroll}
+        style={{ fontFamily: codeFont }}
         className="flex-1 overflow-y-auto p-4 font-mono text-xs leading-relaxed relative"
       >
         <div className="flex min-h-full">
