@@ -13,7 +13,6 @@ import {
   Clock,
   FileText,
   CheckSquare,
-  Maximize2,
   Minimize2,
 } from "lucide-react";
 import { useDocStore, TocItem } from "../store/useDocStore";
@@ -21,6 +20,7 @@ import { CodeBlock } from "./CodeBlock";
 import { MermaidDiagram } from "./MermaidDiagram";
 import { FrontmatterCard } from "./FrontmatterCard";
 import { handleScrollSync } from "../utils/scrollSync";
+import { getAccentClasses } from "../utils/themeAccent";
 
 // Helper function to extract YAML frontmatter
 function parseFrontmatter(rawContent: string): { metadata: Record<string, any>; body: string } {
@@ -84,7 +84,6 @@ function transformText(text: string): string {
     result = result.replaceAll(shortcode, glyph);
   });
 
-  // Transform [[WikiLinks]] into markdown links [Display Text](#wikilink:TargetFile)
   result = result.replace(/\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g, (_, target, display) => {
     const label = display ? display.trim() : target.trim();
     const cleanTarget = target.trim();
@@ -100,6 +99,7 @@ export function MarkdownCanvas() {
     setToc,
     isSyncScrollEnabled,
     theme,
+    accentColor,
     proseFont,
     codeFont,
     folderFiles,
@@ -110,6 +110,7 @@ export function MarkdownCanvas() {
 
   const canvasRef = useRef<HTMLDivElement>(null);
   const isDark = theme === "dark";
+  const accent = getAccentClasses(accentColor);
 
   const { metadata, body } = parseFrontmatter(content);
   const parsedContent = transformText(body);
@@ -182,14 +183,14 @@ export function MarkdownCanvas() {
       onScroll={onScroll}
       style={{ fontFamily: fontFamilyStyle }}
       className={`flex-1 overflow-y-auto p-6 md:p-12 transition-colors relative ${
-        isDark ? "bg-slate-950/60 text-slate-200 selection:bg-cyan-500/30" : "bg-white/90 text-slate-800 selection:bg-cyan-200"
+        isDark ? "bg-slate-950/60 text-slate-200" : "bg-white/90 text-slate-800"
       }`}
     >
       {/* Zen Mode Exit Button Floating Indicator */}
       {isZenMode && (
         <button
           onClick={toggleZenMode}
-          className="fixed top-4 right-6 z-50 p-2 rounded-xl bg-cyan-500/20 border border-cyan-500/40 text-cyan-300 backdrop-blur-md shadow-2xl hover:bg-cyan-500 hover:text-slate-950 transition-all cursor-pointer flex items-center gap-1.5 text-xs font-semibold"
+          className={`fixed top-4 right-6 z-50 p-2 rounded-xl ${accent.bgSoft} border ${accent.borderSoft} ${accent.text} backdrop-blur-md shadow-2xl hover:${accent.bg} hover:text-slate-950 transition-all cursor-pointer flex items-center gap-1.5 text-xs font-semibold`}
           title="Exit Zen Focus Mode (F11)"
         >
           <Minimize2 className="w-4 h-4" />
@@ -209,7 +210,7 @@ export function MarkdownCanvas() {
             isDark ? "bg-slate-900/60 border-slate-800/80 text-slate-400" : "bg-slate-100/70 border-slate-200 text-slate-600"
           }`}>
             <div className="flex items-center gap-1.5">
-              <Clock className="w-3.5 h-3.5 text-cyan-400" />
+              <Clock className={`w-3.5 h-3.5 ${accent.text}`} />
               <span>{readingTime} min read</span>
             </div>
             <div className="flex items-center gap-1.5">
@@ -286,7 +287,7 @@ export function MarkdownCanvas() {
               return (
                 <code
                   style={{ fontFamily: codeFont }}
-                  className="px-1.5 py-0.5 rounded-md bg-slate-900 border border-slate-800 text-cyan-300 text-xs"
+                  className={`px-1.5 py-0.5 rounded-md bg-slate-900 border border-slate-800 ${accent.text} text-xs`}
                   {...props}
                 >
                   {children}
@@ -300,7 +301,7 @@ export function MarkdownCanvas() {
                 return (
                   <button
                     onClick={() => handleWikiLinkClick(targetName)}
-                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 hover:bg-cyan-500/20 font-semibold text-xs transition-colors cursor-pointer"
+                    className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md ${accent.bgSoft} border ${accent.borderSoft} ${accent.text} hover:${accent.bgHover} hover:text-slate-950 font-semibold text-xs transition-colors cursor-pointer`}
                     title={`Open internal note: ${targetName}`}
                   >
                     {children}
@@ -313,7 +314,7 @@ export function MarkdownCanvas() {
                   href={href}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-cyan-400 hover:text-cyan-300 underline underline-offset-4 font-medium transition-colors"
+                  className={`${accent.text} ${accent.textHover} underline underline-offset-4 font-medium transition-colors`}
                 >
                   {children}
                 </a>
@@ -384,7 +385,7 @@ export function MarkdownCanvas() {
               }
 
               return (
-                <blockquote className="border-l-4 border-cyan-500/60 pl-4 py-1 my-4 bg-cyan-500/5 rounded-r-lg text-slate-300 italic">
+                <blockquote className={`border-l-4 ${accent.border} pl-4 py-1 my-4 ${accent.bgSoft} rounded-r-lg text-slate-300 italic`}>
                   {children}
                 </blockquote>
               );
@@ -410,7 +411,7 @@ export function MarkdownCanvas() {
                     type="checkbox"
                     checked={checked}
                     readOnly
-                    className="mr-2 rounded border-slate-700 bg-slate-900 text-cyan-500 focus:ring-0"
+                    className={`mr-2 rounded border-slate-700 bg-slate-900 ${accent.text} focus:ring-0`}
                     {...props}
                   />
                 );

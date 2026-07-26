@@ -18,6 +18,7 @@ import {
   Maximize2,
 } from "lucide-react";
 import { useDocStore } from "../store/useDocStore";
+import { getAccentClasses } from "../utils/themeAccent";
 
 export function TitleBar() {
   const {
@@ -39,10 +40,14 @@ export function TitleBar() {
     togglePinned,
     theme,
     toggleTheme,
+    accentColor,
     setDoc,
   } = useDocStore();
 
   const [isMaximized, setIsMaximized] = useState(false);
+
+  const isDark = theme === "dark";
+  const accent = getAccentClasses(accentColor);
 
   const handleOpenFileDialog = async () => {
     try {
@@ -139,8 +144,6 @@ export function TitleBar() {
     togglePinned();
   };
 
-  const isDark = theme === "dark";
-
   if (isZenMode) return null;
 
   return (
@@ -156,11 +159,9 @@ export function TitleBar() {
       <div className="flex items-center gap-2">
         <button
           onClick={toggleSidebar}
-          className={`p-1.5 rounded-md transition-colors ${
+          className={`p-1.5 rounded-md transition-colors cursor-pointer ${
             isSidebarOpen
-              ? isDark
-                ? "bg-slate-800 text-cyan-400"
-                : "bg-slate-200 text-cyan-600 font-semibold"
+              ? `${accent.bgSoft} ${accent.text}`
               : isDark
               ? "text-slate-400 hover:text-slate-200 hover:bg-slate-800/60"
               : "text-slate-600 hover:text-slate-900 hover:bg-slate-200/60"
@@ -171,11 +172,11 @@ export function TitleBar() {
         </button>
 
         <div className="flex items-center gap-2 pointer-events-none pl-1">
-          <div className="w-5 h-5 rounded-md bg-gradient-to-tr from-cyan-500 to-indigo-500 flex items-center justify-center shadow-lg shadow-cyan-500/20">
-            <Sparkles className="w-3.5 h-3.5 text-white" />
+          <div className={`w-5 h-5 rounded-md bg-gradient-to-tr ${accent.gradient} flex items-center justify-center shadow-lg shadow-cyan-500/10`}>
+            <Sparkles className="w-3.5 h-3.5 text-slate-950" />
           </div>
           <span className={`text-xs font-semibold tracking-wider uppercase ${isDark ? "text-slate-300" : "text-slate-700"}`}>
-            ASTER <span className="text-cyan-500 font-bold">MD</span>
+            ASTER <span className={`${accent.text} font-bold`}>MD</span>
           </span>
         </div>
       </div>
@@ -189,7 +190,7 @@ export function TitleBar() {
           <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full border max-w-md overflow-hidden text-ellipsis whitespace-nowrap ${
             isDark ? "bg-slate-900/80 border-slate-800/80" : "bg-white/80 border-slate-300/80 shadow-xs"
           }`}>
-            <FileText className="w-3.5 h-3.5 text-cyan-500 shrink-0" />
+            <FileText className={`w-3.5 h-3.5 ${accent.text} shrink-0`} />
             <span className={`text-xs font-medium truncate ${isDark ? "text-slate-200" : "text-slate-800"}`}>{fileName}</span>
             {filePath && (
               <span className={`text-[10px] truncate max-w-[140px] ${isDark ? "text-slate-500" : "text-slate-400"}`} title={filePath}>
@@ -210,22 +211,22 @@ export function TitleBar() {
           onClick={handleOpenFileDialog}
           className={`px-2.5 py-1 rounded-md text-xs font-medium border transition-colors flex items-center gap-1.5 mr-1 cursor-pointer ${
             isDark
-              ? "bg-slate-900 border-slate-800 text-slate-300 hover:text-cyan-300 hover:border-cyan-500/30 hover:bg-cyan-500/10"
-              : "bg-white border-slate-300 text-slate-700 hover:text-cyan-600 hover:border-cyan-500/40 hover:bg-cyan-50/50"
+              ? `bg-slate-900 border-slate-800 text-slate-300 hover:${accent.text} hover:${accent.borderSoft} hover:${accent.bgSoft}`
+              : `bg-white border-slate-300 text-slate-700 hover:${accent.text}`
           }`}
           title="Open File (Ctrl+O)"
         >
-          <FolderOpen className="w-3.5 h-3.5 text-cyan-500" />
+          <FolderOpen className={`w-3.5 h-3.5 ${accent.text}`} />
           <span>Open</span>
         </button>
 
         {/* Quick Open Search Palette (Ctrl+P) */}
         <button
           onClick={toggleQuickOpen}
-          className={`p-1.5 rounded-md transition-colors ${
+          className={`p-1.5 rounded-md transition-colors cursor-pointer ${
             isDark
-              ? "text-slate-400 hover:text-cyan-400 hover:bg-slate-800/60"
-              : "text-slate-600 hover:text-cyan-600 hover:bg-slate-200/60"
+              ? `text-slate-400 hover:${accent.text} hover:bg-slate-800/60`
+              : `text-slate-600 hover:${accent.text} hover:bg-slate-200/60`
           }`}
           title="Quick File Finder (Ctrl+P)"
         >
@@ -235,10 +236,10 @@ export function TitleBar() {
         {/* Knowledge Graph View */}
         <button
           onClick={toggleGraphView}
-          className={`p-1.5 rounded-md transition-colors ${
+          className={`p-1.5 rounded-md transition-colors cursor-pointer ${
             isDark
-              ? "text-slate-400 hover:text-cyan-400 hover:bg-slate-800/60"
-              : "text-slate-600 hover:text-cyan-600 hover:bg-slate-200/60"
+              ? `text-slate-400 hover:${accent.text} hover:bg-slate-800/60`
+              : `text-slate-600 hover:${accent.text} hover:bg-slate-200/60`
           }`}
           title="Open Interactive Knowledge Graph"
         >
@@ -248,10 +249,10 @@ export function TitleBar() {
         {/* Slide Presentation Deck (F5) */}
         <button
           onClick={togglePresentation}
-          className={`p-1.5 rounded-md transition-colors ${
+          className={`p-1.5 rounded-md transition-colors cursor-pointer ${
             isDark
-              ? "text-slate-400 hover:text-indigo-400 hover:bg-slate-800/60"
-              : "text-slate-600 hover:text-indigo-600 hover:bg-slate-200/60"
+              ? `text-slate-400 hover:${accent.text} hover:bg-slate-800/60`
+              : `text-slate-600 hover:${accent.text} hover:bg-slate-200/60`
           }`}
           title="Slide Presentation Mode (F5)"
         >
@@ -261,10 +262,10 @@ export function TitleBar() {
         {/* Zen Focus Mode (F11) */}
         <button
           onClick={toggleZenMode}
-          className={`p-1.5 rounded-md transition-colors ${
+          className={`p-1.5 rounded-md transition-colors cursor-pointer ${
             isDark
-              ? "text-slate-400 hover:text-cyan-400 hover:bg-slate-800/60"
-              : "text-slate-600 hover:text-cyan-600 hover:bg-slate-200/60"
+              ? `text-slate-400 hover:${accent.text} hover:bg-slate-800/60`
+              : `text-slate-600 hover:${accent.text} hover:bg-slate-200/60`
           }`}
           title="Zen Focus Mode (F11)"
         >
@@ -274,7 +275,7 @@ export function TitleBar() {
         {/* Theme Toggle Button */}
         <button
           onClick={toggleTheme}
-          className={`p-1.5 rounded-md transition-colors ${
+          className={`p-1.5 rounded-md transition-colors cursor-pointer ${
             isDark
               ? "text-amber-400 hover:bg-slate-800/60"
               : "text-amber-600 hover:bg-slate-200/60"
@@ -287,10 +288,10 @@ export function TitleBar() {
         {/* Customization Settings Button */}
         <button
           onClick={toggleSettings}
-          className={`p-1.5 rounded-md transition-colors ${
+          className={`p-1.5 rounded-md transition-colors cursor-pointer ${
             isDark
-              ? "text-slate-400 hover:text-cyan-400 hover:bg-slate-800/60"
-              : "text-slate-600 hover:text-cyan-600 hover:bg-slate-200/60"
+              ? `text-slate-400 hover:${accent.text} hover:bg-slate-800/60`
+              : `text-slate-600 hover:${accent.text} hover:bg-slate-200/60`
           }`}
           title="Customize Theme & Fonts"
         >
@@ -300,9 +301,9 @@ export function TitleBar() {
         {/* Split View Toggle Button */}
         <button
           onClick={toggleRightSidebar}
-          className={`p-1.5 rounded-md transition-colors flex items-center gap-1 text-xs ${
+          className={`p-1.5 rounded-md transition-colors flex items-center gap-1 text-xs cursor-pointer ${
             isRightSidebarOpen
-              ? "bg-cyan-500/20 text-cyan-500 border border-cyan-500/30 font-medium"
+              ? `${accent.bgSoft} ${accent.text} border ${accent.borderSoft} font-medium`
               : isDark
               ? "text-slate-400 hover:text-slate-200 hover:bg-slate-800/60"
               : "text-slate-600 hover:text-slate-900 hover:bg-slate-200/60"
@@ -315,9 +316,9 @@ export function TitleBar() {
 
         <button
           onClick={handleTogglePin}
-          className={`p-1.5 rounded-md transition-colors ${
+          className={`p-1.5 rounded-md transition-colors cursor-pointer ${
             isPinned
-              ? "bg-cyan-500/20 text-cyan-500"
+              ? `${accent.bgSoft} ${accent.text}`
               : isDark
               ? "text-slate-400 hover:text-slate-200 hover:bg-slate-800/60"
               : "text-slate-600 hover:text-slate-900 hover:bg-slate-200/60"
@@ -345,9 +346,7 @@ export function TitleBar() {
         <button
           onClick={handleMaximize}
           className={`w-7 h-7 flex items-center justify-center rounded-md transition-colors cursor-pointer ${
-            isDark
-              ? "text-slate-400 hover:text-slate-100 hover:bg-slate-800/80"
-              : "text-slate-600 hover:text-slate-900 hover:bg-slate-200"
+            isMaximized ? "Restore" : "Maximize"
           }`}
           title={isMaximized ? "Restore" : "Maximize"}
         >

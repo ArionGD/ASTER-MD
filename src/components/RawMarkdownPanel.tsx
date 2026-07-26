@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import {
   FileText,
   Save,
@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { useDocStore } from "../store/useDocStore";
 import { handleScrollSync } from "../utils/scrollSync";
+import { getAccentClasses } from "../utils/themeAccent";
 
 export function RawMarkdownPanel() {
   const {
@@ -29,6 +30,7 @@ export function RawMarkdownPanel() {
     toggleEditMode,
     toggleRightSidebar,
     theme,
+    accentColor,
     codeFont,
   } = useDocStore();
 
@@ -44,6 +46,7 @@ export function RawMarkdownPanel() {
   const lineNumbers = Array.from({ length: lineCount }, (_, i) => i + 1);
 
   const isDark = theme === "dark";
+  const accent = getAccentClasses(accentColor);
 
   const slashOptions = [
     { label: "Heading 1", snippet: "# ", icon: Heading, desc: "Large title" },
@@ -152,7 +155,7 @@ export function RawMarkdownPanel() {
         }`}
       >
         <div className="flex items-center gap-2">
-          <FileText className="w-3.5 h-3.5 text-cyan-400" />
+          <FileText className={`w-3.5 h-3.5 ${accent.text}`} />
           <span className="font-semibold tracking-wide">RAW MARKDOWN</span>
           {isDirty && (
             <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" title="Unsaved changes (Press Ctrl+S to save)" />
@@ -165,7 +168,7 @@ export function RawMarkdownPanel() {
             disabled={!isDirty}
             className={`px-2 py-0.5 rounded-md text-[11px] font-semibold flex items-center gap-1 transition-all ${
               isDirty
-                ? "bg-cyan-500 hover:bg-cyan-400 text-slate-950 shadow-md shadow-cyan-500/20 cursor-pointer"
+                ? `${accent.btn} shadow-md shadow-cyan-500/10 cursor-pointer`
                 : "bg-slate-800 text-slate-500 opacity-50 cursor-not-allowed"
             }`}
             title="Save file changes to disk (Ctrl+S)"
@@ -178,12 +181,12 @@ export function RawMarkdownPanel() {
             onClick={toggleEditMode}
             className={`px-2 py-0.5 rounded-md text-[11px] font-medium flex items-center gap-1 transition-colors cursor-pointer ${
               isEditMode
-                ? "bg-cyan-500/20 text-cyan-400 border border-cyan-500/40"
+                ? `${accent.bgSoft} ${accent.text} border ${accent.borderSoft}`
                 : "hover:bg-slate-800 text-slate-400 hover:text-slate-200"
             }`}
             title="Toggle Live Text Edit Mode"
           >
-            {isEditMode ? <Edit3 className="w-3 h-3 text-cyan-400" /> : <Eye className="w-3 h-3" />}
+            {isEditMode ? <Edit3 className={`w-3 h-3 ${accent.text}`} /> : <Eye className="w-3 h-3" />}
             <span>{isEditMode ? "Edit Mode" : "View Mode"}</span>
           </button>
 
@@ -191,18 +194,18 @@ export function RawMarkdownPanel() {
             onClick={toggleSyncScroll}
             className={`px-2 py-0.5 rounded-md text-[11px] font-medium flex items-center gap-1 transition-colors cursor-pointer ${
               isSyncScrollEnabled
-                ? "bg-indigo-500/20 text-indigo-400 border border-indigo-500/40"
+                ? `${accent.bgSoft} ${accent.text} border ${accent.borderSoft}`
                 : "hover:bg-slate-800 text-slate-400 hover:text-slate-200"
             }`}
             title="Toggle Bidirectional Synchronized Scroll"
           >
-            <RefreshCw className={`w-3 h-3 ${isSyncScrollEnabled ? "text-indigo-400" : ""}`} />
+            <RefreshCw className={`w-3 h-3 ${isSyncScrollEnabled ? accent.text : ""}`} />
             <span>Sync</span>
           </button>
 
           <button
             onClick={handleCopyRaw}
-            className="p-1 rounded hover:bg-slate-800 text-slate-400 hover:text-slate-200 transition-colors"
+            className="p-1 rounded hover:bg-slate-800 text-slate-400 hover:text-slate-200 transition-colors cursor-pointer"
             title="Copy Raw Content"
           >
             {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Code className="w-3.5 h-3.5" />}
@@ -227,8 +230,8 @@ export function RawMarkdownPanel() {
       >
         {/* Slash Command Popover Menu */}
         {slashMenuOpen && isEditMode && (
-          <div className="absolute top-12 left-16 z-50 w-64 rounded-xl border border-cyan-500/40 bg-slate-900/95 shadow-2xl p-1.5 backdrop-blur-md animate-in fade-in duration-100">
-            <div className="px-2 py-1 text-[10px] font-bold text-cyan-400 uppercase tracking-wider border-b border-slate-800 mb-1">
+          <div className={`absolute top-12 left-16 z-50 w-64 rounded-xl border ${accent.borderSoft} bg-slate-900/95 shadow-2xl p-1.5 backdrop-blur-md animate-in fade-in duration-100`}>
+            <div className={`px-2 py-1 text-[10px] font-bold ${accent.text} uppercase tracking-wider border-b border-slate-800 mb-1`}>
               Insert Snippet Menu (Press Enter)
             </div>
             {slashOptions.map((opt, idx) => {
@@ -240,10 +243,10 @@ export function RawMarkdownPanel() {
                   onClick={() => insertSlashOption(opt)}
                   onMouseEnter={() => setSlashMenuIndex(idx)}
                   className={`flex items-center gap-2.5 p-2 rounded-lg text-xs cursor-pointer transition-colors ${
-                    isSelected ? "bg-cyan-500/20 text-cyan-300 font-semibold" : "text-slate-300 hover:bg-slate-800/60"
+                    isSelected ? `${accent.bgSoft} ${accent.text} font-semibold` : "text-slate-300 hover:bg-slate-800/60"
                   }`}
                 >
-                  <Icon className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                  <Icon className={`w-3.5 h-3.5 ${accent.text} shrink-0`} />
                   <div>
                     <p className="text-xs font-semibold">{opt.label}</p>
                     <p className="text-[10px] text-slate-500 font-normal">{opt.desc}</p>

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
-import { Search, FileText, X, ArrowRight, CornerDownLeft } from "lucide-react";
+import { Search, FileText, X, CornerDownLeft } from "lucide-react";
 import { useDocStore, MarkdownFileItem } from "../store/useDocStore";
+import { getAccentClasses } from "../utils/themeAccent";
 
 export function QuickOpenModal() {
   const {
@@ -10,6 +11,7 @@ export function QuickOpenModal() {
     recentFiles,
     openFileByPath,
     theme,
+    accentColor,
   } = useDocStore();
 
   const [query, setQuery] = useState("");
@@ -17,8 +19,8 @@ export function QuickOpenModal() {
   const inputRef = useRef<HTMLInputElement>(null);
 
   const isDark = theme === "dark";
+  const accent = getAccentClasses(accentColor);
 
-  // Build combined list of searchable files
   const combinedList: MarkdownFileItem[] = [];
   const addedPaths = new Set<string>();
 
@@ -91,7 +93,7 @@ export function QuickOpenModal() {
       >
         {/* Search Input Bar */}
         <div className="flex items-center px-4 py-3 border-b border-slate-800/80 gap-3">
-          <Search className="w-4 h-4 text-cyan-400 shrink-0" />
+          <Search className={`w-4 h-4 ${accent.text} shrink-0`} />
           <input
             ref={inputRef}
             type="text"
@@ -103,7 +105,7 @@ export function QuickOpenModal() {
           />
           <button
             onClick={() => setQuickOpenVisible(false)}
-            className="p-1 rounded-md text-slate-400 hover:text-rose-400 transition-colors"
+            className="p-1 rounded-md text-slate-400 hover:text-rose-400 transition-colors cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
@@ -125,12 +127,12 @@ export function QuickOpenModal() {
                   onMouseEnter={() => setSelectedIndex(idx)}
                   className={`flex items-center justify-between p-2.5 rounded-xl border transition-all cursor-pointer ${
                     isSelected
-                      ? "bg-cyan-500/15 border-cyan-500/40 text-cyan-300 font-medium"
+                      ? `${accent.bgSoft} ${accent.borderSoft} ${accent.text} font-medium`
                       : "bg-transparent border-transparent text-slate-300 hover:bg-slate-800/40"
                   }`}
                 >
                   <div className="flex items-center gap-3 overflow-hidden">
-                    <FileText className={`w-4 h-4 shrink-0 ${isSelected ? "text-cyan-400" : "text-slate-500"}`} />
+                    <FileText className={`w-4 h-4 shrink-0 ${isSelected ? accent.text : "text-slate-500"}`} />
                     <div className="overflow-hidden truncate">
                       <p className="text-xs font-semibold truncate">{item.name}</p>
                       <p className="text-[10px] text-slate-500 truncate">{item.path}</p>
@@ -138,7 +140,7 @@ export function QuickOpenModal() {
                   </div>
 
                   {isSelected && (
-                    <div className="flex items-center gap-1 text-[10px] font-semibold text-cyan-400 bg-cyan-500/10 px-2 py-0.5 rounded-md border border-cyan-500/30">
+                    <div className={`flex items-center gap-1 text-[10px] font-semibold ${accent.text} ${accent.bgSoft} px-2 py-0.5 rounded-md border ${accent.borderSoft}`}>
                       <span>Open</span>
                       <CornerDownLeft className="w-3 h-3" />
                     </div>

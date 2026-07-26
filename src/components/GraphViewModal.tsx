@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
-import { X, Network, FileText, ExternalLink, Sparkles } from "lucide-react";
+import { X, Network, FileText } from "lucide-react";
 import { useDocStore } from "../store/useDocStore";
+import { getAccentClasses } from "../utils/themeAccent";
 
 interface Node {
   id: string;
@@ -11,11 +12,6 @@ interface Node {
   connections: number;
 }
 
-interface Edge {
-  source: string;
-  target: string;
-}
-
 export function GraphViewModal() {
   const {
     isGraphViewVisible,
@@ -24,6 +20,7 @@ export function GraphViewModal() {
     fileName,
     openFileByPath,
     theme,
+    accentColor,
   } = useDocStore();
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -31,6 +28,7 @@ export function GraphViewModal() {
   const [hoveredNode, setHoveredNode] = useState<Node | null>(null);
 
   const isDark = theme === "dark";
+  const accent = getAccentClasses(accentColor);
 
   useEffect(() => {
     if (!isGraphViewVisible || folderFiles.length === 0) return;
@@ -67,9 +65,8 @@ export function GraphViewModal() {
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Draw Edges between nodes
     ctx.lineWidth = 1;
-    ctx.strokeStyle = isDark ? "rgba(56, 189, 248, 0.25)" : "rgba(14, 165, 233, 0.25)";
+    ctx.strokeStyle = isDark ? `${accent.hex}44` : `${accent.hex}66`;
 
     for (let i = 0; i < nodes.length; i++) {
       for (let j = i + 1; j < nodes.length; j++) {
@@ -82,35 +79,31 @@ export function GraphViewModal() {
       }
     }
 
-    // Draw Nodes
     nodes.forEach((node) => {
       const isCurrent = node.name === fileName;
       const isHovered = hoveredNode?.id === node.id;
 
-      // Node Circle Outer Glow
       if (isCurrent || isHovered) {
         ctx.beginPath();
         ctx.arc(node.x, node.y, 14, 0, 2 * Math.PI);
-        ctx.fillStyle = isCurrent ? "rgba(6, 182, 212, 0.3)" : "rgba(99, 102, 241, 0.3)";
+        ctx.fillStyle = isCurrent ? `${accent.hex}55` : "rgba(99, 102, 241, 0.3)";
         ctx.fill();
       }
 
-      // Node Circle
       ctx.beginPath();
       ctx.arc(node.x, node.y, isCurrent ? 9 : 7, 0, 2 * Math.PI);
-      ctx.fillStyle = isCurrent ? "#06b6d4" : isHovered ? "#818cf8" : isDark ? "#334155" : "#94a3b8";
+      ctx.fillStyle = isCurrent ? accent.hex : isHovered ? "#818cf8" : isDark ? "#334155" : "#94a3b8";
       ctx.fill();
       ctx.lineWidth = 2;
       ctx.strokeStyle = isDark ? "#0f172a" : "#ffffff";
       ctx.stroke();
 
-      // Node Label
       ctx.font = isCurrent ? "bold 11px Inter, sans-serif" : "10px Inter, sans-serif";
-      ctx.fillStyle = isCurrent ? "#38bdf8" : isDark ? "#cbd5e1" : "#334155";
+      ctx.fillStyle = isCurrent ? accent.hex : isDark ? "#cbd5e1" : "#334155";
       ctx.textAlign = "center";
       ctx.fillText(node.name.replace(".md", ""), node.x, node.y + 20);
     });
-  }, [nodes, hoveredNode, fileName, isDark, isGraphViewVisible]);
+  }, [nodes, hoveredNode, fileName, isDark, accent, isGraphViewVisible]);
 
   const handleCanvasMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
@@ -149,8 +142,8 @@ export function GraphViewModal() {
         {/* Header */}
         <div className="flex items-center justify-between pb-4 border-b border-slate-800/80 mb-4">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-cyan-500/20 flex items-center justify-center">
-              <Network className="w-4 h-4 text-cyan-400" />
+            <div className={`w-8 h-8 rounded-xl ${accent.bgSoft} flex items-center justify-center`}>
+              <Network className={`w-4 h-4 ${accent.text}`} />
             </div>
             <div>
               <h2 className="text-sm font-bold tracking-tight">Interactive Knowledge Graph</h2>
@@ -180,13 +173,13 @@ export function GraphViewModal() {
           />
 
           {hoveredNode && (
-            <div className="absolute top-4 right-4 bg-slate-900/90 border border-cyan-500/40 p-2.5 rounded-xl shadow-xl backdrop-blur-md text-xs space-y-1">
-              <p className="font-bold text-cyan-300 flex items-center gap-1.5">
+            <div className={`absolute top-4 right-4 bg-slate-900/90 border ${accent.borderSoft} p-2.5 rounded-xl shadow-xl backdrop-blur-md text-xs space-y-1`}>
+              <p className={`font-bold ${accent.text} flex items-center gap-1.5`}>
                 <FileText className="w-3.5 h-3.5" />
                 {hoveredNode.name}
               </p>
               <p className="text-[10px] text-slate-400 truncate max-w-[200px]">{hoveredNode.path}</p>
-              <p className="text-[10px] text-cyan-400 font-medium">Click node to open file</p>
+              <p className={`text-[10px] ${accent.text} font-medium`}>Click node to open file</p>
             </div>
           )}
         </div>
@@ -194,7 +187,7 @@ export function GraphViewModal() {
         {/* Footer */}
         <div className="pt-4 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-400">
           <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-cyan-400 inline-block"></span>
+            <span className={`w-2 h-2 rounded-full ${accent.bg} inline-block`}></span>
             <span>Current Document</span>
             <span className="w-2 h-2 rounded-full bg-slate-600 inline-block ml-3"></span>
             <span>Linked Documents</span>
@@ -202,7 +195,7 @@ export function GraphViewModal() {
 
           <button
             onClick={() => setGraphViewVisible(false)}
-            className="px-4 py-1.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-semibold text-xs transition-colors cursor-pointer"
+            className={`px-4 py-1.5 rounded-xl ${accent.btn} text-xs transition-colors cursor-pointer`}
           >
             Close Graph
           </button>
