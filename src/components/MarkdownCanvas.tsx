@@ -13,6 +13,8 @@ import {
   Clock,
   FileText,
   CheckSquare,
+  Maximize2,
+  Minimize2,
 } from "lucide-react";
 import { useDocStore, TocItem } from "../store/useDocStore";
 import { CodeBlock } from "./CodeBlock";
@@ -57,8 +59,8 @@ function parseFrontmatter(rawContent: string): { metadata: Record<string, any>; 
   return { metadata, body };
 }
 
-// Emoji shortcode dictionary transformer
-function transformEmojiShortcodes(text: string): string {
+// Emoji shortcode dictionary transformer & Wiki-Link transformer
+function transformText(text: string): string {
   const emojiMap: Record<string, string> = {
     ":rocket:": "🚀",
     ":fire:": "🔥",
@@ -81,16 +83,36 @@ function transformEmojiShortcodes(text: string): string {
   Object.entries(emojiMap).forEach(([shortcode, glyph]) => {
     result = result.replaceAll(shortcode, glyph);
   });
+
+  // Transform [[WikiLinks]] into markdown links [Display Text](#wikilink:TargetFile)
+  result = result.replace(/\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g, (_, target, display) => {
+    const label = display ? display.trim() : target.trim();
+    const cleanTarget = target.trim();
+    return `[🔗 ${label}](#wikilink:${cleanTarget})`;
+  });
+
   return result;
 }
 
 export function MarkdownCanvas() {
-  const { content, setToc, isSyncScrollEnabled, theme, proseFont, codeFont } = useDocStore();
+  const {
+    content,
+    setToc,
+    isSyncScrollEnabled,
+    theme,
+    proseFont,
+    codeFont,
+    folderFiles,
+    openFileByPath,
+    isZenMode,
+    toggleZenMode,
+  } = useDocStore();
+
   const canvasRef = useRef<HTMLDivElement>(null);
   const isDark = theme === "dark";
 
   const { metadata, body } = parseFrontmatter(content);
-  const parsedContent = transformEmojiShortcodes(body);
+  const parsedContent = transformText(body);
 
   // Compute Document Stats
   const words = parsedContent.trim().split(/\s+/).filter(Boolean).length;
@@ -135,6 +157,22 @@ export function MarkdownCanvas() {
     }
   };
 
+  // Handle Wiki-Link Navigation Click
+  const handleWikiLinkClick = (targetName: string) => {
+    const cleanTargetName = targetName.replace(/\.md$/, "").toLowerCase();
+    const foundFile = folderFiles.find(
+      (f) =>
+        f.name.toLowerCase().replace(/\.md$/, "") === cleanTargetName ||
+        f.name.toLowerCase() === cleanTargetName
+    );
+
+    if (foundFile) {
+      openFileByPath(foundFile.path);
+    } else {
+      console.warn(`Wiki-link file "${targetName}" not found in current folder workspace.`);
+    }
+  };
+
   const fontFamilyStyle = proseFont === "System" ? "system-ui, sans-serif" : `${proseFont}, sans-serif`;
 
   return (
@@ -147,6 +185,18 @@ export function MarkdownCanvas() {
         isDark ? "bg-slate-950/60 text-slate-200 selection:bg-cyan-500/30" : "bg-white/90 text-slate-800 selection:bg-cyan-200"
       }`}
     >
+      {/* Zen Mode Exit Button Floating Indicator */}
+      {isZenMode && (
+        <button
+          onClick={toggleZenMode}
+          className="fixed top-4 right-6 z-50 p-2 rounded-xl bg-cyan-500/20 border border-cyan-500/40 text-cyan-300 backdrop-blur-md shadow-2xl hover:bg-cyan-500 hover:text-slate-950 transition-all cursor-pointer flex items-center gap-1.5 text-xs font-semibold"
+          title="Exit Zen Focus Mode (F11)"
+        >
+          <Minimize2 className="w-4 h-4" />
+          <span>Exit Zen</span>
+        </button>
+      )}
+
       <article className={`max-w-4xl mx-auto space-y-6 leading-relaxed ${
         isDark ? "text-slate-200" : "text-slate-800"
       }`}>
@@ -243,17 +293,32 @@ export function MarkdownCanvas() {
                 </code>
               );
             },
-            // Custom Links
-            a: ({ href, children }) => (
-              <a
-                href={href}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-cyan-400 hover:text-cyan-300 underline underline-offset-4 font-medium transition-colors"
-              >
-                {children}
-              </a>
-            ),
+            // Custom Links & WikiLinks Support
+            a: ({ href, children }) => {
+              if (href && href.startsWith("#wikilink:")) {
+                const targetName = href.replace("#wikilink:", "");
+                return (
+                  <button
+                    onClick={() => handleWikiLinkClick(targetName)}
+                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 hover:bg-cyan-500/20 font-semibold text-xs transition-colors cursor-pointer"
+                    title={`Open internal note: ${targetName}`}
+                  >
+                    {children}
+                  </button>
+                );
+              }
+
+              return (
+                <a
+                  href={href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-cyan-400 hover:text-cyan-300 underline underline-offset-4 font-medium transition-colors"
+                >
+                  {children}
+                </a>
+              );
+            },
             // Custom Blockquotes with GitHub-style Alerts support
             blockquote: ({ children }: any) => {
               const textContent = String(children?.[1]?.props?.children?.[0] || children?.[0]?.props?.children || "").trim();

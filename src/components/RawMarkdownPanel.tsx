@@ -1,15 +1,18 @@
 import { useState, useRef, useEffect } from "react";
 import {
-  Copy,
-  Check,
-  FileCode,
-  X,
-  RefreshCw,
-  Edit3,
-  Eye,
+  FileText,
   Save,
-  Link2,
-  Unlink,
+  Check,
+  Eye,
+  Edit3,
+  RefreshCw,
+  X,
+  Code,
+  Heading,
+  Table,
+  Terminal,
+  Zap,
+  Info,
 } from "lucide-react";
 import { useDocStore } from "../store/useDocStore";
 import { handleScrollSync } from "../utils/scrollSync";
@@ -18,9 +21,8 @@ export function RawMarkdownPanel() {
   const {
     content,
     setContent,
-    filePath,
-    isDirty,
     saveFile,
+    isDirty,
     isSyncScrollEnabled,
     toggleSyncScroll,
     isEditMode,
@@ -31,167 +33,185 @@ export function RawMarkdownPanel() {
   } = useDocStore();
 
   const [copied, setCopied] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
-  const [justSaved, setJustSaved] = useState(false);
+  const [slashMenuOpen, setSlashMenuOpen] = useState(false);
+  const [slashMenuIndex, setSlashMenuIndex] = useState(0);
 
   const rawContainerRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const isDark = theme === "dark";
   const lines = content.split("\n");
+  const lineCount = Math.max(lines.length, 1);
+  const lineNumbers = Array.from({ length: lineCount }, (_, i) => i + 1);
 
-  // Sync scroll with Markdown Canvas
-  const onScroll = () => {
-    if (!isSyncScrollEnabled || !rawContainerRef.current) return;
-    const canvasElement = document.getElementById("aster-markdown-canvas");
-    if (canvasElement) {
-      handleScrollSync("raw", rawContainerRef.current, canvasElement);
-    }
-  };
+  const isDark = theme === "dark";
 
-  const handleCopyRaw = async () => {
-    try {
-      await navigator.clipboard.writeText(content);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch (e) {
-      console.error("Failed to copy raw content:", e);
-    }
+  const slashOptions = [
+    { label: "Heading 1", snippet: "# ", icon: Heading, desc: "Large title" },
+    { label: "Heading 2", snippet: "## ", icon: Heading, desc: "Section header" },
+    { label: "Code Block", snippet: "```typescript\n// your code here\n```\n", icon: Terminal, desc: "Syntax highlighted code" },
+    { label: "Mermaid Diagram", snippet: "```mermaid\ngraph TD\n    A[Start] --> B[End]\n```\n", icon: Zap, desc: "Live diagram chart" },
+    { label: "LaTeX Math Block", snippet: "$$\n\\text{Volume} = \\frac{4}{3}\\pi r^3\n$$\n", icon: Code, desc: "Mathematical equation" },
+    { label: "Table Template", snippet: "| Header 1 | Header 2 |\n| --- | --- |\n| Row 1 | Data 1 |\n", icon: Table, desc: "GFM table structure" },
+    { label: "Alert Callout Note", snippet: "> [!NOTE]\n> Add important note here\n", icon: Info, desc: "GitHub-style alert banner" },
+  ];
+
+  const handleCopyRaw = () => {
+    navigator.clipboard.writeText(content);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   const handleSave = async () => {
-    if (isSaving || !filePath) return;
-    setIsSaving(true);
-    const success = await saveFile();
-    setIsSaving(false);
-    if (success) {
-      setJustSaved(true);
-      setTimeout(() => setJustSaved(false), 2000);
+    await saveFile();
+  };
+
+  const onScroll = () => {
+    if (!isSyncScrollEnabled || !rawContainerRef.current) return;
+    const canvasContainer = document.getElementById("aster-markdown-canvas");
+    if (canvasContainer) {
+      handleScrollSync("raw", rawContainerRef.current, canvasContainer);
     }
   };
 
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
+  const handleTextareaKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
+      e.preventDefault();
+      handleSave();
+      return;
+    }
+
+    if (slashMenuOpen) {
+      if (e.key === "ArrowDown") {
         e.preventDefault();
-        handleSave();
+        setSlashMenuIndex((prev) => (prev + 1) % slashOptions.length);
+        return;
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        setSlashMenuIndex((prev) => (prev - 1 + slashOptions.length) % slashOptions.length);
+        return;
+      } else if (e.key === "Enter") {
+        e.preventDefault();
+        insertSlashOption(slashOptions[slashMenuIndex]);
+        return;
+      } else if (e.key === "Escape") {
+        setSlashMenuOpen(false);
+        return;
       }
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [filePath, content, isSaving]);
+    }
+
+    if (e.key === "/") {
+      const textarea = textareaRef.current;
+      if (textarea) {
+        const val = textarea.value;
+        const pos = textarea.selectionStart;
+        const lastLineStart = val.lastIndexOf("\n", pos - 1) + 1;
+        const lineText = val.substring(lastLineStart, pos);
+        if (lineText.trim() === "") {
+          setSlashMenuOpen(true);
+          setSlashMenuIndex(0);
+        }
+      }
+    }
+  };
+
+  const insertSlashOption = (option: typeof slashOptions[0]) => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    const val = content;
+    const pos = textarea.selectionStart;
+    const lastLineStart = val.lastIndexOf("\n", pos - 1) + 1;
+
+    const before = val.substring(0, lastLineStart);
+    const after = val.substring(pos);
+
+    const newContent = before + option.snippet + after;
+    setContent(newContent);
+    setSlashMenuOpen(false);
+
+    setTimeout(() => {
+      textarea.focus();
+      textarea.selectionStart = textarea.selectionEnd = lastLineStart + option.snippet.length;
+    }, 50);
+  };
 
   return (
-    <div className={`flex-1 flex flex-col h-full border-l overflow-hidden z-30 transition-colors ${
-      isDark ? "bg-slate-950/95 border-slate-800/80 text-slate-100" : "bg-slate-50/95 border-slate-200 text-slate-800"
-    }`}>
-      {/* Header Ribbon */}
-      <div className={`h-10 px-3 border-b flex items-center justify-between text-xs shrink-0 select-none backdrop-blur-md ${
-        isDark ? "bg-slate-900/90 border-slate-800/80 text-slate-300" : "bg-slate-100/90 border-slate-200 text-slate-700"
-      }`}>
-        {/* Left Title & Badges */}
-        <div className="flex items-center gap-2 overflow-hidden">
-          <FileCode className="w-4 h-4 text-cyan-500 shrink-0" />
-          <span className={`font-semibold tracking-wide truncate ${isDark ? "text-slate-200" : "text-slate-800"}`}>
-            Raw Source
-          </span>
-          <span className={`text-[10px] border px-2 py-0.5 rounded-full font-mono shrink-0 ${
-            isDark ? "text-slate-500 bg-slate-950 border-slate-800/80" : "text-slate-500 bg-white border-slate-300"
-          }`}>
-            {lines.length} lines
-          </span>
+    <div
+      className={`w-1/2 flex flex-col border-l select-text transition-colors relative ${
+        isDark
+          ? "bg-slate-950 border-slate-800 text-slate-200"
+          : "bg-slate-100 border-slate-300 text-slate-800"
+      }`}
+    >
+      {/* Top Ribbon Bar */}
+      <div
+        className={`h-9 border-b px-3 flex items-center justify-between shrink-0 text-xs font-medium select-none ${
+          isDark
+            ? "bg-slate-900/90 border-slate-800 text-slate-300"
+            : "bg-white border-slate-300 text-slate-700"
+        }`}
+      >
+        <div className="flex items-center gap-2">
+          <FileText className="w-3.5 h-3.5 text-cyan-400" />
+          <span className="font-semibold tracking-wide">RAW MARKDOWN</span>
           {isDirty && (
-            <span className="text-[10px] bg-amber-500/20 text-amber-500 border border-amber-500/30 px-2 py-0.5 rounded-full font-medium shrink-0 animate-pulse">
-              Unsaved
-            </span>
+            <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" title="Unsaved changes (Press Ctrl+S to save)" />
           )}
         </div>
 
-        {/* Right Action Buttons */}
         <div className="flex items-center gap-1.5">
-          {/* Sync Scroll Toggle */}
           <button
-            onClick={toggleSyncScroll}
-            className={`px-2 py-1 rounded text-[11px] font-medium flex items-center gap-1 transition-all ${
-              isSyncScrollEnabled
-                ? "bg-cyan-500/20 text-cyan-500 border border-cyan-500/30"
-                : isDark
-                ? "bg-slate-800/60 text-slate-400 border border-slate-700/50 hover:text-slate-200"
-                : "bg-white text-slate-600 border border-slate-300 hover:text-slate-900"
+            onClick={handleSave}
+            disabled={!isDirty}
+            className={`px-2 py-0.5 rounded-md text-[11px] font-semibold flex items-center gap-1 transition-all ${
+              isDirty
+                ? "bg-cyan-500 hover:bg-cyan-400 text-slate-950 shadow-md shadow-cyan-500/20 cursor-pointer"
+                : "bg-slate-800 text-slate-500 opacity-50 cursor-not-allowed"
             }`}
-            title={isSyncScrollEnabled ? "Sync Scroll ON" : "Sync Scroll OFF"}
+            title="Save file changes to disk (Ctrl+S)"
           >
-            {isSyncScrollEnabled ? <Link2 className="w-3 h-3 text-cyan-500" /> : <Unlink className="w-3 h-3" />}
-            <span>Sync Scroll</span>
+            <Save className="w-3 h-3" />
+            <span>{isDirty ? "Save (Ctrl+S)" : "Saved"}</span>
           </button>
 
-          {/* Edit Mode Toggle */}
           <button
             onClick={toggleEditMode}
-            className={`px-2 py-1 rounded text-[11px] font-medium flex items-center gap-1 transition-all ${
+            className={`px-2 py-0.5 rounded-md text-[11px] font-medium flex items-center gap-1 transition-colors cursor-pointer ${
               isEditMode
-                ? "bg-indigo-500/20 text-indigo-500 border border-indigo-500/30 font-semibold"
-                : isDark
-                ? "bg-slate-800/60 text-slate-400 border border-slate-700/50 hover:text-slate-200"
-                : "bg-white text-slate-600 border border-slate-300 hover:text-slate-900"
+                ? "bg-cyan-500/20 text-cyan-400 border border-cyan-500/40"
+                : "hover:bg-slate-800 text-slate-400 hover:text-slate-200"
             }`}
-            title={isEditMode ? "Switch to View Mode" : "Enable Live Edit Mode"}
+            title="Toggle Live Text Edit Mode"
           >
-            {isEditMode ? <Edit3 className="w-3 h-3 text-indigo-500" /> : <Eye className="w-3 h-3" />}
-            <span>{isEditMode ? "Editing" : "Edit"}</span>
+            {isEditMode ? <Edit3 className="w-3 h-3 text-cyan-400" /> : <Eye className="w-3 h-3" />}
+            <span>{isEditMode ? "Edit Mode" : "View Mode"}</span>
           </button>
 
-          {/* Save Button */}
-          {filePath && (
-            <button
-              onClick={handleSave}
-              disabled={!isDirty || isSaving}
-              className={`px-2 py-1 rounded text-[11px] font-medium flex items-center gap-1 transition-colors ${
-                justSaved
-                  ? "bg-emerald-500/20 text-emerald-600 border border-emerald-500/30"
-                  : isDirty
-                  ? "bg-amber-500/20 text-amber-600 border border-amber-500/40 hover:bg-amber-500/30 cursor-pointer"
-                  : isDark
-                  ? "bg-slate-900 text-slate-600 border border-slate-800 cursor-not-allowed"
-                  : "bg-slate-200 text-slate-400 border border-slate-300 cursor-not-allowed"
-              }`}
-              title={filePath ? "Save changes to file (Ctrl+S)" : "No file open to save"}
-            >
-              {justSaved ? (
-                <>
-                  <Check className="w-3 h-3 text-emerald-500" />
-                  <span>Saved</span>
-                </>
-              ) : isSaving ? (
-                <>
-                  <RefreshCw className="w-3 h-3 text-amber-500 animate-spin" />
-                  <span>Saving</span>
-                </>
-              ) : (
-                <>
-                  <Save className="w-3 h-3" />
-                  <span>Save</span>
-                </>
-              )}
-            </button>
-          )}
+          <button
+            onClick={toggleSyncScroll}
+            className={`px-2 py-0.5 rounded-md text-[11px] font-medium flex items-center gap-1 transition-colors cursor-pointer ${
+              isSyncScrollEnabled
+                ? "bg-indigo-500/20 text-indigo-400 border border-indigo-500/40"
+                : "hover:bg-slate-800 text-slate-400 hover:text-slate-200"
+            }`}
+            title="Toggle Bidirectional Synchronized Scroll"
+          >
+            <RefreshCw className={`w-3 h-3 ${isSyncScrollEnabled ? "text-indigo-400" : ""}`} />
+            <span>Sync</span>
+          </button>
 
-          {/* Copy Button */}
           <button
             onClick={handleCopyRaw}
-            className={`p-1.5 rounded border transition-colors text-[11px] ${
-              isDark ? "bg-slate-800/80 border-slate-700/60 text-slate-300 hover:text-cyan-300" : "bg-white border-slate-300 text-slate-600 hover:text-cyan-600"
-            }`}
+            className="p-1 rounded hover:bg-slate-800 text-slate-400 hover:text-slate-200 transition-colors"
             title="Copy Raw Content"
           >
-            {copied ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
+            {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Code className="w-3.5 h-3.5" />}
           </button>
 
-          {/* Close Button */}
           <button
             onClick={toggleRightSidebar}
-            className="p-1.5 rounded text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 transition-colors"
-            title="Close Panel"
+            className="p-1 rounded hover:bg-rose-500/10 text-slate-400 hover:text-rose-400 transition-colors ml-1 cursor-pointer"
+            title="Close Split View"
           >
             <X className="w-3.5 h-3.5" />
           </button>
@@ -205,34 +225,63 @@ export function RawMarkdownPanel() {
         style={{ fontFamily: codeFont }}
         className="flex-1 overflow-y-auto p-4 font-mono text-xs leading-relaxed relative"
       >
+        {/* Slash Command Popover Menu */}
+        {slashMenuOpen && isEditMode && (
+          <div className="absolute top-12 left-16 z-50 w-64 rounded-xl border border-cyan-500/40 bg-slate-900/95 shadow-2xl p-1.5 backdrop-blur-md animate-in fade-in duration-100">
+            <div className="px-2 py-1 text-[10px] font-bold text-cyan-400 uppercase tracking-wider border-b border-slate-800 mb-1">
+              Insert Snippet Menu (Press Enter)
+            </div>
+            {slashOptions.map((opt, idx) => {
+              const Icon = opt.icon;
+              const isSelected = idx === slashMenuIndex;
+              return (
+                <div
+                  key={opt.label}
+                  onClick={() => insertSlashOption(opt)}
+                  onMouseEnter={() => setSlashMenuIndex(idx)}
+                  className={`flex items-center gap-2.5 p-2 rounded-lg text-xs cursor-pointer transition-colors ${
+                    isSelected ? "bg-cyan-500/20 text-cyan-300 font-semibold" : "text-slate-300 hover:bg-slate-800/60"
+                  }`}
+                >
+                  <Icon className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                  <div>
+                    <p className="text-xs font-semibold">{opt.label}</p>
+                    <p className="text-[10px] text-slate-500 font-normal">{opt.desc}</p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
         <div className="flex min-h-full">
           {/* Line Numbers */}
-          <div className={`select-none pr-3 text-right font-mono text-[11px] space-y-0.5 border-r mr-3 shrink-0 ${
-            isDark ? "text-slate-600 border-slate-800/60" : "text-slate-400 border-slate-200"
-          }`}>
-            {lines.map((_, i) => (
-              <div key={i} className="leading-relaxed">
-                {i + 1}
+          <div className="w-10 select-none pr-3 text-right text-slate-600 font-mono text-xs shrink-0 space-y-0.5">
+            {lineNumbers.map((num) => (
+              <div key={num} className="h-5 flex items-center justify-end text-[11px] leading-none">
+                {num}
               </div>
             ))}
           </div>
 
-          {/* Content / Textarea */}
-          <div className="flex-1 relative">
+          {/* Code Textarea or Plain Read-only Code View */}
+          <div className="flex-1 min-w-0 pl-2">
             {isEditMode ? (
               <textarea
                 ref={textareaRef}
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
-                placeholder="Type or paste Markdown source here..."
-                className={`w-full h-full bg-transparent border-none outline-none resize-none font-mono text-xs leading-relaxed placeholder-slate-400 ${
-                  isDark ? "text-cyan-100 selection:bg-cyan-500/30" : "text-slate-900 selection:bg-cyan-200"
+                onKeyDown={handleTextareaKeyDown}
+                style={{ fontFamily: codeFont }}
+                className={`w-full min-h-full bg-transparent resize-none focus:outline-none font-mono text-xs leading-5 border-none p-0 ${
+                  isDark ? "text-cyan-200 placeholder:text-slate-600" : "text-slate-900 placeholder:text-slate-400"
                 }`}
+                placeholder="Type your markdown source here... (Type '/' for snippet menu)"
                 spellCheck={false}
               />
             ) : (
-              <pre className={`font-mono whitespace-pre-wrap break-words leading-relaxed ${
-                isDark ? "text-cyan-100/90 selection:bg-cyan-500/30" : "text-slate-800 selection:bg-cyan-200"
+              <pre className={`font-mono text-xs leading-5 whitespace-pre-wrap break-words ${
+                isDark ? "text-cyan-100" : "text-slate-900"
               }`}>
                 {content}
               </pre>

@@ -13,6 +13,9 @@ import {
   Sun,
   Moon,
   Settings,
+  Presentation,
+  Network,
+  Maximize2,
 } from "lucide-react";
 import { useDocStore } from "../store/useDocStore";
 
@@ -27,6 +30,11 @@ export function TitleBar() {
     isSearchOpen,
     toggleSearch,
     toggleSettings,
+    toggleQuickOpen,
+    toggleGraphView,
+    togglePresentation,
+    isZenMode,
+    toggleZenMode,
     isPinned,
     togglePinned,
     theme,
@@ -133,6 +141,8 @@ export function TitleBar() {
 
   const isDark = theme === "dark";
 
+  if (isZenMode) return null;
+
   return (
     <header
       data-tauri-drag-region
@@ -194,7 +204,7 @@ export function TitleBar() {
         )}
       </div>
 
-      {/* Right: Open File, Toggle Split View, Theme Toggle, Settings, Search, Window Controls */}
+      {/* Right Controls Ribbon */}
       <div className="flex items-center gap-1">
         <button
           onClick={handleOpenFileDialog}
@@ -207,6 +217,58 @@ export function TitleBar() {
         >
           <FolderOpen className="w-3.5 h-3.5 text-cyan-500" />
           <span>Open</span>
+        </button>
+
+        {/* Quick Open Search Palette (Ctrl+P) */}
+        <button
+          onClick={toggleQuickOpen}
+          className={`p-1.5 rounded-md transition-colors ${
+            isDark
+              ? "text-slate-400 hover:text-cyan-400 hover:bg-slate-800/60"
+              : "text-slate-600 hover:text-cyan-600 hover:bg-slate-200/60"
+          }`}
+          title="Quick File Finder (Ctrl+P)"
+        >
+          <Search className="w-4 h-4" />
+        </button>
+
+        {/* Knowledge Graph View */}
+        <button
+          onClick={toggleGraphView}
+          className={`p-1.5 rounded-md transition-colors ${
+            isDark
+              ? "text-slate-400 hover:text-cyan-400 hover:bg-slate-800/60"
+              : "text-slate-600 hover:text-cyan-600 hover:bg-slate-200/60"
+          }`}
+          title="Open Interactive Knowledge Graph"
+        >
+          <Network className="w-4 h-4" />
+        </button>
+
+        {/* Slide Presentation Deck (F5) */}
+        <button
+          onClick={togglePresentation}
+          className={`p-1.5 rounded-md transition-colors ${
+            isDark
+              ? "text-slate-400 hover:text-indigo-400 hover:bg-slate-800/60"
+              : "text-slate-600 hover:text-indigo-600 hover:bg-slate-200/60"
+          }`}
+          title="Slide Presentation Mode (F5)"
+        >
+          <Presentation className="w-4 h-4" />
+        </button>
+
+        {/* Zen Focus Mode (F11) */}
+        <button
+          onClick={toggleZenMode}
+          className={`p-1.5 rounded-md transition-colors ${
+            isDark
+              ? "text-slate-400 hover:text-cyan-400 hover:bg-slate-800/60"
+              : "text-slate-600 hover:text-cyan-600 hover:bg-slate-200/60"
+          }`}
+          title="Zen Focus Mode (F11)"
+        >
+          <Maximize2 className="w-4 h-4" />
         </button>
 
         {/* Theme Toggle Button */}
@@ -249,20 +311,6 @@ export function TitleBar() {
         >
           <Code2 className="w-4 h-4" />
           <span className="text-[11px]">Raw Split</span>
-        </button>
-
-        <button
-          onClick={toggleSearch}
-          className={`p-1.5 rounded-md transition-colors ${
-            isSearchOpen
-              ? "bg-cyan-500/20 text-cyan-500"
-              : isDark
-              ? "text-slate-400 hover:text-slate-200 hover:bg-slate-800/60"
-              : "text-slate-600 hover:text-slate-900 hover:bg-slate-200/60"
-          }`}
-          title="Find in document (Ctrl+F)"
-        >
-          <Search className="w-4 h-4" />
         </button>
 
         <button

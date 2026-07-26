@@ -29,6 +29,13 @@ interface DocState {
   isPinned: boolean;
   recentFiles: string[];
 
+  // Advanced Feature Modals
+  isQuickOpenVisible: boolean;
+  isGraphViewVisible: boolean;
+  isPresentationVisible: boolean;
+  currentSlideIndex: number;
+  isZenMode: boolean;
+
   // Theme & Accent Colors & Fonts
   theme: "dark" | "light";
   accentColor: AccentColor;
@@ -57,6 +64,15 @@ interface DocState {
   setSearchOpen: (open: boolean) => void;
   toggleSettings: () => void;
   setSettingsOpen: (open: boolean) => void;
+  toggleQuickOpen: () => void;
+  setQuickOpenVisible: (visible: boolean) => void;
+  toggleGraphView: () => void;
+  setGraphViewVisible: (visible: boolean) => void;
+  togglePresentation: () => void;
+  setPresentationVisible: (visible: boolean) => void;
+  setCurrentSlideIndex: (index: number) => void;
+  toggleZenMode: () => void;
+
   setSearchQuery: (query: string) => void;
   togglePinned: () => void;
   addRecentFile: (path: string) => void;
@@ -68,6 +84,7 @@ interface DocState {
   setProseFont: (font: ProseFont) => void;
   setCodeFont: (font: CodeFont) => void;
   saveFile: () => Promise<boolean>;
+  openFileByPath: (path: string) => Promise<boolean>;
 }
 
 export const useDocStore = create<DocState>((set, get) => ({
@@ -82,6 +99,12 @@ export const useDocStore = create<DocState>((set, get) => ({
   searchQuery: "",
   isPinned: false,
   recentFiles: [],
+
+  isQuickOpenVisible: false,
+  isGraphViewVisible: false,
+  isPresentationVisible: false,
+  currentSlideIndex: 0,
+  isZenMode: false,
 
   theme: "dark",
   accentColor: "cyan",
@@ -122,6 +145,15 @@ export const useDocStore = create<DocState>((set, get) => ({
   setSearchOpen: (open) => set({ isSearchOpen: open }),
   toggleSettings: () => set((state) => ({ isSettingsOpen: !state.isSettingsOpen })),
   setSettingsOpen: (open) => set({ isSettingsOpen: open }),
+  toggleQuickOpen: () => set((state) => ({ isQuickOpenVisible: !state.isQuickOpenVisible })),
+  setQuickOpenVisible: (visible) => set({ isQuickOpenVisible: visible }),
+  toggleGraphView: () => set((state) => ({ isGraphViewVisible: !state.isGraphViewVisible })),
+  setGraphViewVisible: (visible) => set({ isGraphViewVisible: visible }),
+  togglePresentation: () => set((state) => ({ isPresentationVisible: !state.isPresentationVisible, currentSlideIndex: 0 })),
+  setPresentationVisible: (visible) => set({ isPresentationVisible: visible, currentSlideIndex: 0 }),
+  setCurrentSlideIndex: (index) => set({ currentSlideIndex: index }),
+  toggleZenMode: () => set((state) => ({ isZenMode: !state.isZenMode })),
+
   setSearchQuery: (query) => set({ searchQuery: query }),
   togglePinned: () => set((state) => ({ isPinned: !state.isPinned })),
   addRecentFile: (path) =>
@@ -156,6 +188,18 @@ export const useDocStore = create<DocState>((set, get) => ({
       return true;
     } catch (err) {
       console.error("Failed to save file to disk:", err);
+      return false;
+    }
+  },
+
+  openFileByPath: async (path: string) => {
+    try {
+      const { invoke } = await import("@tauri-apps/api/core");
+      const fileContent = await invoke<string>("read_file_content", { path });
+      get().setDoc(path, fileContent);
+      return true;
+    } catch (err) {
+      console.error("Failed to open file by path:", err);
       return false;
     }
   },
