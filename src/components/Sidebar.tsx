@@ -70,7 +70,7 @@ export function Sidebar() {
 
       if (selected && typeof selected === "string") {
         const files = await invoke<MarkdownFileItem[]>("list_markdown_files", {
-          dirPath: selected,
+          folderPath: selected,
         });
         setFolder(selected, files);
       }
@@ -84,7 +84,7 @@ export function Sidebar() {
     try {
       const { invoke } = await import("@tauri-apps/api/core");
       const files = await invoke<MarkdownFileItem[]>("list_markdown_files", {
-        dirPath: currentFolder,
+        folderPath: currentFolder,
       });
       setFolder(currentFolder, files);
     } catch (err) {
@@ -221,7 +221,7 @@ export function Sidebar() {
             {currentFolder && (
               <button
                 onClick={handleRefreshFolder}
-                className="p-1 rounded text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition-colors"
+                className="p-1 rounded text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition-colors cursor-pointer"
                 title="Refresh Folder Markdown Files"
               >
                 <RefreshCw className="w-3.5 h-3.5" />

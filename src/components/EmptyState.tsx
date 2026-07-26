@@ -1,10 +1,12 @@
 import React from "react";
-import { FolderOpen, FileCode2, Upload } from "lucide-react";
-import { useDocStore } from "../store/useDocStore";
+import { FolderOpen, FileCode2, Upload, Folder } from "lucide-react";
+import { useDocStore, MarkdownFileItem } from "../store/useDocStore";
+import { getAccentClasses } from "../utils/themeAccent";
 
 export function EmptyState() {
-  const { setDoc, theme } = useDocStore();
+  const { setDoc, setFolder, theme, accentColor } = useDocStore();
   const isDark = theme === "dark";
+  const accent = getAccentClasses(accentColor);
 
   const handleOpenFileDialog = async () => {
     try {
@@ -35,6 +37,34 @@ export function EmptyState() {
     }
   };
 
+  const handleOpenFolderDialog = async () => {
+    try {
+      const { open } = await import("@tauri-apps/plugin-dialog");
+      const { invoke } = await import("@tauri-apps/api/core");
+
+      const selected = await open({
+        directory: true,
+        multiple: false,
+      });
+
+      if (selected && typeof selected === "string") {
+        const files = await invoke<MarkdownFileItem[]>("list_markdown_files", {
+          folderPath: selected,
+        });
+        setFolder(selected, files);
+
+        // Auto-open first markdown file in folder if available
+        if (files.length > 0) {
+          const firstFile = files[0];
+          const content = await invoke<string>("read_file_content", { path: firstFile.path });
+          setDoc(firstFile.path, content, firstFile.name);
+        }
+      }
+    } catch (err) {
+      console.warn("Folder picker error:", err);
+    }
+  };
+
   const handleDrop = async (e: React.DragEvent) => {
     e.preventDefault();
     const file = e.dataTransfer.files?.[0];
@@ -61,7 +91,7 @@ export function EmptyState() {
         <div className={`w-20 h-20 rounded-3xl border flex items-center justify-center mb-6 shadow-2xl group cursor-pointer hover:border-cyan-500/40 transition-all duration-300 ${
           isDark ? "bg-slate-900/90 border-slate-800 shadow-cyan-500/10" : "bg-white border-slate-200 shadow-slate-300/50"
         }`}>
-          <FileCode2 className="w-10 h-10 text-cyan-500 group-hover:scale-110 transition-transform duration-300" />
+          <FileCode2 className={`w-10 h-10 ${accent.text} group-hover:scale-110 transition-transform duration-300`} />
         </div>
 
         <h1 className={`text-3xl font-bold mb-3 tracking-tight ${
@@ -80,17 +110,29 @@ export function EmptyState() {
         <div className="flex flex-col sm:flex-row items-center gap-3 w-full justify-center">
           <button
             onClick={handleOpenFileDialog}
-            className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-medium text-xs shadow-lg shadow-cyan-500/25 transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer"
+            className={`w-full sm:w-auto px-5 py-2.5 rounded-xl ${accent.btn} text-xs shadow-lg transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer`}
           >
             <FolderOpen className="w-4 h-4" />
             <span>Open Markdown File</span>
+          </button>
+
+          <button
+            onClick={handleOpenFolderDialog}
+            className={`w-full sm:w-auto px-5 py-2.5 rounded-xl border text-xs font-semibold flex items-center justify-center gap-2 transition-all duration-200 cursor-pointer ${
+              isDark
+                ? "bg-slate-900 border-slate-800 text-slate-200 hover:bg-slate-800"
+                : "bg-white border-slate-300 text-slate-800 hover:bg-slate-100"
+            }`}
+          >
+            <Folder className={`w-4 h-4 ${accent.text}`} />
+            <span>Open Folder</span>
           </button>
         </div>
 
         <div className={`mt-8 flex items-center gap-2 text-[11px] px-4 py-2 rounded-full backdrop-blur-sm border ${
           isDark ? "text-slate-500 bg-slate-900/50 border-slate-800/80" : "text-slate-600 bg-white/70 border-slate-200 shadow-2xs"
         }`}>
-          <Upload className="w-3.5 h-3.5 text-cyan-500" />
+          <Upload className={`w-3.5 h-3.5 ${accent.text}`} />
           <span>Or drag & drop any <b>.md</b> file anywhere here</span>
         </div>
       </div>
