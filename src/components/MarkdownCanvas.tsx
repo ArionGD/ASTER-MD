@@ -122,18 +122,20 @@ export function MarkdownCanvas() {
   const checkboxes = (parsedContent.match(/\[[ xX]\]/g) || []).length;
   const checkedBoxes = (parsedContent.match(/\[[xX]\]/g) || []).length;
 
-  // Extract ToC items whenever content changes
+  // Extract ToC items reliably whenever content changes
   useEffect(() => {
     if (!parsedContent) {
       setToc([]);
       return;
     }
 
-    const headingLines = parsedContent.split("\n");
+    // Strip code blocks to avoid matching comments as headers
+    const cleanBody = parsedContent.replace(/```[\s\S]*?```/g, "");
+    const headingLines = cleanBody.split("\n");
     const extractedToc: TocItem[] = [];
 
     headingLines.forEach((line) => {
-      const match = line.match(/^(#{1-6})\s+(.+)$/);
+      const match = line.match(/^(#{1,6})\s+(.+)$/);
       if (match) {
         const level = match[1].length;
         const text = match[2].trim().replace(/[*_~`]/g, "");
@@ -142,7 +144,9 @@ export function MarkdownCanvas() {
           .replace(/[^\w\s-]/g, "")
           .replace(/\s+/g, "-");
 
-        extractedToc.push({ id, text, level });
+        if (text) {
+          extractedToc.push({ id, text, level });
+        }
       }
     });
 

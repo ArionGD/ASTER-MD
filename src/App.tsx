@@ -9,6 +9,7 @@ import { SlidePresentationModal } from "./components/SlidePresentationModal";
 import { MarkdownCanvas } from "./components/MarkdownCanvas";
 import { RawMarkdownPanel } from "./components/RawMarkdownPanel";
 import { EmptyState } from "./components/EmptyState";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 import { useDocStore } from "./store/useDocStore";
 
 export default function App() {
@@ -23,9 +24,39 @@ export default function App() {
     toggleZenMode,
     isZenMode,
     theme,
+    restoreSavedSession,
+    openFileByPath,
   } = useDocStore();
 
   const isDark = theme === "dark";
+
+  // Restore saved session & setup Tauri file drop listener on mount
+  useEffect(() => {
+    restoreSavedSession();
+
+    let unlistenDrop: (() => void) | undefined;
+    const setupDropListener = async () => {
+      try {
+        const { listen } = await import("@tauri-apps/api/event");
+        unlistenDrop = await listen<{ paths: string[] }>("tauri://drag-drop", (event) => {
+          if (event.payload && event.payload.paths && event.payload.paths.length > 0) {
+            const droppedPath = event.payload.paths[0];
+            if (droppedPath.endsWith(".md") || droppedPath.endsWith(".markdown") || droppedPath.endsWith(".txt")) {
+              openFileByPath(droppedPath);
+            }
+          }
+        });
+      } catch (err) {
+        console.warn("Tauri drag-drop listener not registered (browser dev fallback)");
+      }
+    };
+
+    setupDropListener();
+
+    return () => {
+      if (unlistenDrop) unlistenDrop();
+    };
+  }, [restoreSavedSession, openFileByPath]);
 
   // Global Keyboard Shortcuts (Ctrl+O, Ctrl+B, Ctrl+F, Ctrl+P, F5, F11)
   useEffect(() => {
@@ -85,10 +116,12 @@ export default function App() {
 
         {/* Center Main Workspace (Canvas or Split-View) */}
         {content ? (
-          <div className="flex-1 flex overflow-hidden">
-            <MarkdownCanvas />
-            {isRightSidebarOpen && !isZenMode && <RawMarkdownPanel />}
-          </div>
+          <ErrorBoundary>
+            <div className="flex-1 flex overflow-hidden">
+              <MarkdownCanvas />
+              {isRightSidebarOpen && !isZenMode && <RawMarkdownPanel />}
+            </div>
+          </ErrorBoundary>
         ) : (
           <EmptyState />
         )}
